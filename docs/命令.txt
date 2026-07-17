@@ -1,0 +1,5 @@
+1. 更新代码
+git fetch upstream --prune
+git switch my-custom
+git merge upstream/master
+git push origin my-custom

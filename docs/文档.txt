@@ -1,0 +1,38 @@
+# 1. 获取并修改 ODX
+git clone https://github.com/WebODM/ODX.git
+cd ODX
+
+# 修改：
+# opendm/ogctiles.py
+
+docker build -t my-odx:dev .
+2. 然后基于自己的 ODX 构建 NodeODX：
+cd C:/Users/24322/Desktop/WebODM/NodeODX
+
+docker build \
+  --build-arg FROM_REPO=my-odx:dev \
+  -t my-nodeodx:dev .
+---------------------------------------
+
+cd ODX-master
+
+docker build --platform linux/amd64 --pull=false -t my_odx .
+
+---------------------------------------
+cd NodeODX-master
+
+docker build --platform linux/amd64 --pull=false --build-arg FROM_REPO=my_odx -t my_nodeodx .
+-------------------------------------------------------------------------
+docker save -o my_nodeodx-linux-amd64.tar my_nodeodx
+--------------------------------------------------------------------------
+docker load -i my_nodeodx-linux-amd64.tar
+
+
+-----------------------------------------------------------
+3dtile 替换
+
+docker cp ogctiles.py node-odx-1:/code/opendm/ogctiles.py
+
+docker cp ogc_enu.py node-odx-1:/code/opendm/ogc_enu.py
+
+docker restart node-odx-1
