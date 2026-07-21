@@ -1,0 +1,13 @@
+{
+  "name": "Task Webhook",
+  "webodmMinVersion": "0.6.2",
+  "description": "Send an HTTP webhook after a WebODM task completes",
+  "version": "1.0.0",
+  "author": "Local deployment",
+  "tags": [
+    "notification",
+    "webhook"
+  ],
+  "experimental": false,
+  "deprecated": false
+}
