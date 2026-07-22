@@ -67,8 +67,11 @@ def build_textured_model(input_obj, output_path, reference_lla = None, rerun=Fal
             'lat': lat,
             'lon': lon,
             'alt': alt,
+            'lods': 1 if boundary is not None else 4,
         }
-        system.run('Obj2Tiles "{input}" "{output}" --octree --divisions 0 --lods 4 '
+        if boundary is not None:
+            log.INFO("Using a single OGC 3D Tiles LOD to preserve the clipped boundary")
+        system.run('Obj2Tiles "{input}" "{output}" --octree --divisions 0 --lods {lods} '
                    '--split-strategy VertexMedian --lod-texture-scale 0.5 --error 40 '
                    '--lat {lat} --lon {lon} --alt {alt} --y-up-to-z-up '.format(**kwargs))
 

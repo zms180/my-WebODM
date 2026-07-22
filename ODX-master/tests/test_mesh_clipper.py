@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from shapely.geometry import Polygon
+from shapely.ops import unary_union
 
 from opendm.mesh_clipper import clip_obj_by_boundary, point_in_boundary
 
@@ -108,8 +109,55 @@ class TestMeshClipper(unittest.TestCase):
             coordinates = [vertices[reference[0] - 1][:2] for reference in face]
             self.assertTrue(polygon.covers(Polygon(coordinates)))
 
-    def test_removes_small_disconnected_component(self):
+    def test_clockwise_concave_boundary_preserves_full_intersection(self):
         source = (
+            "v -1 -1 0\n"
+            "v 7 -1 0\n"
+            "v 7 7 0\n"
+            "v -1 7 0\n"
+            "f 1 2 3\n"
+            "f 1 3 4\n"
+        )
+        boundary = list(reversed([
+            (0, 0), (6, 0), (6, 2), (2, 2), (2, 6), (0, 6),
+        ]))
+
+        output, kept_faces = self._clip(source, boundary)
+        vertices, _, _, faces = self._parse_obj(output)
+        clipped_geometry = unary_union([
+            Polygon([vertices[reference[0] - 1][:2] for reference in face])
+            for face in faces
+        ])
+
+        self.assertGreater(kept_faces, 0)
+        self.assertAlmostEqual(
+            clipped_geometry.symmetric_difference(Polygon(boundary)).area, 0.0, places=9)
+
+    def test_removes_small_disconnected_component_by_default(self):
+        source = self._disconnected_source()
+
+        output, kept_faces = self._clip(
+            source, [(-1, -1), (10, -1), (10, 10), (-1, 10)])
+        vertices, _, _, faces = self._parse_obj(output)
+
+        self.assertEqual(kept_faces, 2)
+        self.assertEqual(len(faces), 2)
+        self.assertTrue(all(vertex[2] == 10 for vertex in vertices))
+
+    def test_can_preserve_small_disconnected_component(self):
+        source = self._disconnected_source()
+
+        output, kept_faces = self._clip(
+            source, [(-1, -1), (10, -1), (10, 10), (-1, 10)],
+            minimum_component_faces=0, minimum_component_ratio=0)
+        vertices, _, _, faces = self._parse_obj(output)
+
+        self.assertEqual(kept_faces, 3)
+        self.assertEqual(len(faces), 3)
+        self.assertIn(-100, [vertex[2] for vertex in vertices])
+
+    def _disconnected_source(self):
+        return (
             "v 0 0 10\n"
             "v 4 0 10\n"
             "v 4 4 10\n"
@@ -122,21 +170,15 @@ class TestMeshClipper(unittest.TestCase):
             "f 5 6 7\n"
         )
 
-        output, kept_faces = self._clip(source, [(-1, -1), (10, -1), (10, 10), (-1, 10)])
-        vertices, _, _, faces = self._parse_obj(output)
-
-        self.assertEqual(kept_faces, 2)
-        self.assertEqual(len(faces), 2)
-        self.assertTrue(all(vertex[2] == 10 for vertex in vertices))
-
-    def _clip(self, source, boundary):
+    def _clip(self, source, boundary, **clip_options):
         with tempfile.TemporaryDirectory() as temp_dir:
             input_obj = os.path.join(temp_dir, "input.obj")
             output_obj = os.path.join(temp_dir, "output.obj")
             with open(input_obj, 'w') as output:
                 output.write(source)
 
-            kept_faces = clip_obj_by_boundary(input_obj, output_obj, boundary)
+            kept_faces = clip_obj_by_boundary(
+                input_obj, output_obj, boundary, **clip_options)
 
             with open(output_obj) as output:
                 return output.read(), kept_faces

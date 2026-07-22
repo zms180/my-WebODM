@@ -268,6 +268,8 @@ def _clip_triangle(references, data, boundary_polygon, prepared_boundary,
 def _component_filter(faces, vertices, minimum_faces, minimum_ratio):
     if not faces:
         return set()
+    if minimum_faces <= 0 and minimum_ratio <= 0:
+        return set(range(len(faces)))
 
     position_nodes = {}
     parent = []
