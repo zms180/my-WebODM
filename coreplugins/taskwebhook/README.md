@@ -1,6 +1,11 @@
 # Task Webhook 插件
 
-任务在 WebODM 中完成成果下载、解压和登记，并保存为 `status=40` 后，插件向固定地址发送 HTTP Webhook。
+任务在 WebODM 中成功完成或进入失败状态后，插件向固定地址发送 HTTP Webhook：
+
+- 成功：`event=task.completed`、`task.status=40`
+- 失败或 WebODM 捕获到处理异常：`event=task.failed`、`task.status=30`
+
+取消任务（`status=50`）不会触发 Webhook。
 
 ## 配置
 
@@ -35,7 +40,7 @@ WEBHOOK_SECRET = "replace-with-a-random-secret"
 
 | 请求头 | 说明 |
 | --- | --- |
-| `X-WebODM-Event` | 固定为 `task.completed` |
+| `X-WebODM-Event` | 事件类型：`task.completed` 或 `task.failed` |
 | `X-WebODM-Event-Id` | 本次事件的唯一 UUID |
 | `X-WebODM-Timestamp` | 发送时的 Unix 秒时间戳 |
 | `X-WebODM-Signature` | 配置密钥后发送，格式为 `sha256=<hex>` |
@@ -50,7 +55,7 @@ X-WebODM-Timestamp + "." + 原始 HTTP 请求体字节
 
 ## 推送参数
 
-示例请求体：
+成功事件示例：
 
 ```json
 {
@@ -75,25 +80,51 @@ X-WebODM-Timestamp + "." + 原始 HTTP 请求体字节
 }
 ```
 
+失败或处理异常事件示例：
+
+```json
+{
+  "event": "task.failed",
+  "event_id": "f120749b-7b8c-4ed0-abf6-4ecbdeaf01cc",
+  "payload_version": 1,
+  "sent_at": "2026-07-22T07:30:00.123456+00:00",
+  "task": {
+    "api_path": "/api/projects/12/tasks/af3fd9c1-a575-41d4-a20d-bc9ae771abf7/",
+    "available_assets": [],
+    "created_at": "2026-07-22T07:15:00.000000+00:00",
+    "id": "af3fd9c1-a575-41d4-a20d-bc9ae771abf7",
+    "last_error": "Invalid zip file",
+    "name": "survey-2026-07-22",
+    "processing_time": 4378123,
+    "project_id": 12,
+    "project_name": "示例项目",
+    "status": 30
+  }
+}
+```
+
 字段说明：
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `payload_version` | integer | 请求体结构版本，当前为 `1` |
-| `event` | string | 事件类型，当前为 `task.completed` |
+| `event` | string | 事件类型：`task.completed` 或 `task.failed` |
 | `event_id` | string | 事件唯一 UUID；重试时保持不变 |
 | `sent_at` | string | ISO 8601 入队时间 |
 | `task.id` | string | WebODM 任务 UUID |
 | `task.project_id` | integer | WebODM 项目 ID |
 | `task.project_name` | string | 项目名称 |
 | `task.name` | string | 任务名称，未设置时为空字符串 |
-| `task.status` | integer | 完成状态，固定为 `40` |
+| `task.status` | integer | 成功为 `40`，失败为 `30` |
+| `task.last_error` | string | 仅 `task.failed` 提供；NodeODM 返回或 WebODM 捕获到的错误文本，无错误文本时为空字符串 |
 | `task.processing_time` | integer | NodeODM 报告的处理耗时，单位为毫秒 |
 | `task.created_at` | string | 任务创建时间，ISO 8601 格式 |
 | `task.available_assets` | array[string] | WebODM 已登记的可下载成果 |
 | `task.api_path` | string | 查询任务详情的相对 API 路径 |
 
 同一个事件可能因为响应丢失而被重复投递。接收端必须以 `event_id` 做幂等去重，并尽快返回 `2xx`；耗时业务应在接收端异步处理。
+
+NodeODM 报告任务失败，以及 WebODM 在任务处理期间捕获 `NodeServerError` 或 `NodeResponseError` 并将任务标记为失败，都会发送 `task.failed`。未被 WebODM 转换为任务失败状态的进程崩溃或强制终止无法保证发送回调。
 
 ## 复制到运行容器
 

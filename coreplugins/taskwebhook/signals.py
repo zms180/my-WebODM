@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from app.models import Task
 from app.plugins.functions import get_current_plugin
-from app.plugins.signals import task_completed
+from app.plugins.signals import task_completed, task_failed
 from app.plugins.worker import run_function_async
 
 from . import config
@@ -16,8 +16,7 @@ from .delivery import deliver_webhook
 logger = logging.getLogger("app.logger")
 
 
-@receiver(task_completed, dispatch_uid="taskwebhook_task_completed")
-def handle_task_completed(sender, task_id, **kwargs):
+def queue_task_event(task_id, event):
     if get_current_plugin(only_active=True) is None:
         return
 
@@ -28,25 +27,29 @@ def handle_task_completed(sender, task_id, **kwargs):
     try:
         task = Task.objects.select_related("project").get(id=task_id)
         event_id = str(uuid.uuid4())
+        task_payload = {
+            "id": str(task.id),
+            "project_id": task.project_id,
+            "project_name": task.project.name,
+            "name": task.name or "",
+            "status": task.status,
+            "processing_time": task.processing_time,
+            "created_at": task.created_at.isoformat(),
+            "available_assets": list(task.available_assets or []),
+            "api_path": "/api/projects/{}/tasks/{}/".format(
+                task.project_id,
+                task.id,
+            ),
+        }
+        if event == "task.failed":
+            task_payload["last_error"] = task.last_error or ""
+
         payload = {
             "payload_version": 1,
-            "event": "task.completed",
+            "event": event,
             "event_id": event_id,
             "sent_at": timezone.now().isoformat(),
-            "task": {
-                "id": str(task.id),
-                "project_id": task.project_id,
-                "project_name": task.project.name,
-                "name": task.name or "",
-                "status": task.status,
-                "processing_time": task.processing_time,
-                "created_at": task.created_at.isoformat(),
-                "available_assets": list(task.available_assets or []),
-                "api_path": "/api/projects/{}/tasks/{}/".format(
-                    task.project_id,
-                    task.id,
-                ),
-            },
+            "task": task_payload,
         }
 
         run_function_async(
@@ -60,7 +63,8 @@ def handle_task_completed(sender, task_id, **kwargs):
             config.WEBHOOK_RETRY_BASE_SECONDS,
         )
         logger.info(
-            "TaskWebhook: queued event %s for task %s",
+            "TaskWebhook: queued %s event %s for task %s",
+            event,
             event_id,
             task.id,
         )
@@ -68,3 +72,13 @@ def handle_task_completed(sender, task_id, **kwargs):
         logger.warning("TaskWebhook: task %s no longer exists", task_id)
     except Exception:
         logger.exception("TaskWebhook: could not queue task %s", task_id)
+
+
+@receiver(task_completed, dispatch_uid="taskwebhook_task_completed")
+def handle_task_completed(sender, task_id, **kwargs):
+    queue_task_event(task_id, "task.completed")
+
+
+@receiver(task_failed, dispatch_uid="taskwebhook_task_failed")
+def handle_task_failed(sender, task_id, **kwargs):
+    queue_task_event(task_id, "task.failed")

@@ -1439,6 +1439,9 @@ class Task(models.Model):
         self.status = status_codes.FAILED
         self.pending_action = None
         self.save()
+
+        from app.plugins import signals as plugin_signals
+        plugin_signals.task_failed.send_robust(sender=self.__class__, task_id=self.id)
         
     def find_all_files_matching(self, regex):
         directory = full_task_directory_path(self.id, self.project.id)
