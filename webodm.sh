@@ -39,6 +39,8 @@ DEFAULT_SSL="$WO_SSL"
 DEFAULT_SSL_INSECURE_PORT_REDIRECT="$WO_SSL_INSECURE_PORT_REDIRECT"
 DEFAULT_BROKER="$WO_BROKER"
 DEFAULT_NODES="$WO_DEFAULT_NODES"
+DEFAULT_NODE_MEMORY="$WO_NODE_MEMORY"
+DEFAULT_NODE_CPUS="$WO_NODE_CPUS"
 
 # Parse args for overrides
 POSITIONAL=()
@@ -137,6 +139,18 @@ case $key in
     shift # past argument
     shift # past value
     ;;
+    --node-memory)
+    WO_NODE_MEMORY="$2"
+    export WO_NODE_MEMORY
+    shift # past argument
+    shift # past value
+    ;;
+    --node-cpus)
+    WO_NODE_CPUS="$2"
+    export WO_NODE_CPUS
+    shift # past argument
+    shift # past value
+    ;;
     --settings)
     WO_SETTINGS=$(realpath "$2")
     export WO_SETTINGS
@@ -196,6 +210,8 @@ usage(){
   echo "	--db-dir	<path>	Path where the Postgres db data will be stored to (default: $DEFAULT_DB_DIR (docker named volume))"
   echo "	--node-dir	<path>	Path where temporary files will be stored during processing when using the default node (default: docker container storage)"
   echo "	--default-nodes	Whether to create a processing node attached to WebODM on startup (default: $DEFAULT_NODES)"
+  echo "	--node-memory	Maximum amount of memory allocated for the default processing node (default: ${DEFAULT_NODE_MEMORY:-unlimited})"
+  echo "	--node-cpus	Maximum number of CPUs allocated for the default processing node (default: ${DEFAULT_NODE_CPUS:-all})"
   echo "	--with-micmac	Create a NodeMICMAC node attached to WebODM on startup. Experimental! (default: disabled)"
   echo "	--ssl	Enable SSL and automatically request and install a certificate from letsencrypt.org. (default: $DEFAULT_SSL)"
   echo "	--ssl-key	<path>	Manually specify a path to the private key file (.pem) to use with nginx to enable SSL (default: None)"
@@ -421,6 +437,8 @@ start(){
 	echo "SSL insecure port redirect: $WO_SSL_INSECURE_PORT_REDIRECT"
 	echo "Celery Broker: $WO_BROKER"
 	echo "Default Nodes: $WO_DEFAULT_NODES"
+	echo "Default Node memory limit: $WO_NODE_MEMORY"
+	echo "Default Node cpus limit: $WO_NODE_CPUS"
 	echo "Settings: $WO_SETTINGS"
 	echo "Worker memory limit: $WO_WORKER_MEMORY"
 	echo "Worker cpus limit: $WO_WORKER_CPUS"
@@ -439,6 +457,14 @@ start(){
 
 		if [ ! -z "$WO_NODE_DIR" ]; then
 			command+=" -f docker-compose.nodeodm.volume.yml"
+		fi
+
+		if [ ! -z "$WO_NODE_MEMORY" ]; then
+			command+=" -f docker-compose.nodeodm-memory.yml"
+		fi
+
+		if [ ! -z "$WO_NODE_CPUS" ]; then
+			command+=" -f docker-compose.nodeodm-cpu.yml"
 		fi
     fi
 

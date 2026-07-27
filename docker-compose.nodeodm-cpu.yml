@@ -1,0 +1,4 @@
+version: '2.2'
+services:
+  node-odx-1:
+    cpus: ${WO_NODE_CPUS}

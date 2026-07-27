@@ -1,0 +1,4 @@
+version: '2.1'
+services:
+  node-odx-1:
+    mem_limit: ${WO_NODE_MEMORY}
