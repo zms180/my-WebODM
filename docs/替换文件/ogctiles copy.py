@@ -67,16 +67,12 @@ def build_textured_model(input_obj, output_path, reference_lla = None, rerun=Fal
             'lat': lat,
             'lon': lon,
             'alt': alt,
-            'divisions': 1,
-            'lods': 4,
-            'lod_texture_scale': 0.5,
-            'base_error': 40,
+            'lods': 1 if boundary is not None else 4,
         }
-        log.INFO("Generating hierarchical OGC 3D Tiles with a full-footprint coarse LOD")
-        system.run('Obj2Tiles "{input}" "{output}" --octree '
-                   '--divisions {divisions} --lods {lods} '
-                   '--split-strategy VertexMedian '
-                   '--lod-texture-scale {lod_texture_scale} --error {base_error} '
+        if boundary is not None:
+            log.INFO("Using a single OGC 3D Tiles LOD to preserve the clipped boundary")
+        system.run('Obj2Tiles "{input}" "{output}" --octree --divisions 0 --lods {lods} '
+                   '--split-strategy VertexMedian --lod-texture-scale 0.5 --error 40 '
                    '--lat {lat} --lon {lon} --alt {alt} --y-up-to-z-up '.format(**kwargs))
 
         tileset = os.path.join(output_path, "tileset.json")
