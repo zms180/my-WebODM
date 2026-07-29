@@ -12,6 +12,11 @@ services:
   node-odx-1:
     image: webodm/nodeodx:gpu
     container_name: node-odx-1
+    volumes:
+      - ./ODX-master/opendm/ogctiles.py:/code/opendm/ogctiles.py:ro
+      - ./ODX-master/opendm/ogc_enu.py:/code/opendm/ogc_enu.py:ro
+      - ./ODX-master/opendm/mesh_clipper.py:/code/opendm/mesh_clipper.py:ro
+      - ./ODX-master/stages/odm_postprocess.py:/code/stages/odm_postprocess.py:ro
     expose:
       - "3000"
     restart: unless-stopped
