@@ -1,0 +1,39 @@
+./webodm.sh down
+./webodm.sh start --media-dir /home/top/WebODM/data  --port 8001 --node-memory 35g
+./webodm.sh start --media-dir /home/top/WebODM/data  --port 8001 --worker-memory 30G --worker-cpus 20 --gpu
+
+
+--------------------------------------------------------------------------------------------
+
+docker cp ogctiles.py node-odx-1:/code/opendm/ogctiles.py
+
+docker cp ogc_enu.py node-odx-1:/code/opendm/ogc_enu.py
+--------------------------------------------------------------------------------
+
+docker cp mesh_clipper.py node-odx-1:/code/opendm/mesh_clipper.py
+
+docker cp odm_postprocess.py node-odx-1:/code/stages/odm_postprocess.py
+--------------------------------------------------------------------------------
+
+²å¼þ-------------------------------
+
+docker cp taskwebhook webapp:/webodm/coreplugins/
+docker cp taskwebhook worker:/webodm/coreplugins/
+
+
+docker cp task.py webapp:/webodm/app/models/task.py
+docker cp task.py worker:/webodm/app/models/task.py
+
+docker restart webapp worker
+-----------------------------------------------
+
+docker restart node-odx-1
+
+----------------------------------
+¼àÌýËÞÖ÷»ú
+docker exec -u 0 webapp sh -c "echo '172.18.0.1 host.docker.internal' >> /etc/hosts"
+docker exec -u 0 worker sh -c "echo '172.18.0.1 host.docker.internal' >> /etc/hosts"
+
+
+------------------------------
+docker cp ogctiles.py node-odx-1:/code/opendm/ogctiles.py && docker cp ogc_enu.py node-odx-1:/code/opendm/ogc_enu.py && docker cp mesh_clipper.py node-odx-1:/code/opendm/mesh_clipper.py && docker cp odm_postprocess.py node-odx-1:/code/stages/odm_postprocess.py && docker cp task.py webapp:/webodm/app/models/task.py && docker cp task.py worker:/webodm/app/models/task.py && docker cp taskwebhook worker:/webodm/coreplugins/ && docker cp taskwebhook webapp:/webodm/coreplugins/ && docker restart worker webapp node-odx-1 && docker exec -u 0 webapp sh -c "echo '172.18.0.1 host.docker.internal' >> /etc/hosts" && docker exec -u 0 worker sh -c "echo '172.18.0.1 host.docker.internal' >> /etc/hosts"
