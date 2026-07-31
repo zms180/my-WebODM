@@ -1,5 +1,9 @@
 WEBHOOK_ENABLED = True
+# Tasks without a routing tag are production tasks.
 WEBHOOK_URL = "http://host.docker.internal:8889/webodm/task-completed"
+WEBHOOK_URLS_BY_TAG = {
+    "webhook:test": "http://host.docker.internal:8890/webodm/task-completed",
+}
 WEBHOOK_SECRET = "8e9377d3b93b78de79081f2c54542c302347f5ad169323032affeb77816a4cc1"
 
 WEBHOOK_CONNECT_TIMEOUT = 5

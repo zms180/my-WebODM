@@ -2,13 +2,25 @@ import logging
 
 import json
 from django.contrib.auth.models import User
+from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from app.api.tags import TagsField, parse_tags_input
 from app.models import Project, Task
 from app.tests.classes import BootTestCase
 
 logger = logging.getLogger('app.logger')
+
+
+class TestTagsField(SimpleTestCase):
+    def test_accepts_single_string(self):
+        self.assertEqual(
+            TagsField().to_internal_value("webhook:test"),
+            "webhook:test",
+        )
+        self.assertEqual(parse_tags_input("webhook:test"), ["webhook:test"])
+
 
 class TestApiTags(BootTestCase):
     def setUp(self):

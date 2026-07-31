@@ -16,16 +16,41 @@ from .delivery import deliver_webhook
 logger = logging.getLogger("app.logger")
 
 
+def get_webhook_route(task):
+    routes = config.WEBHOOK_URLS_BY_TAG
+    task_tags = set((getattr(task, "tags", "") or "").split())
+    project_tags = set((getattr(task.project, "tags", "") or "").split())
+
+    for tag, webhook_url in routes.items():
+        if tag in task_tags:
+            return webhook_url, tag
+
+    for tag, webhook_url in routes.items():
+        if tag in project_tags:
+            return webhook_url, tag
+
+    return config.WEBHOOK_URL, None
+
+
 def queue_task_event(task_id, event):
     if get_current_plugin(only_active=True) is None:
         return
 
-    if not config.WEBHOOK_ENABLED or not config.WEBHOOK_URL:
+    if not config.WEBHOOK_ENABLED:
         logger.info("TaskWebhook: delivery is disabled")
         return
 
     try:
         task = Task.objects.select_related("project").get(id=task_id)
+        webhook_url, route_tag = get_webhook_route(task)
+        if not webhook_url:
+            logger.warning(
+                "TaskWebhook: no URL configured for route %s; task %s was not queued",
+                route_tag or "default",
+                task.id,
+            )
+            return
+
         event_id = str(uuid.uuid4())
         task_payload = {
             "id": str(task.id),
@@ -54,7 +79,7 @@ def queue_task_event(task_id, event):
 
         run_function_async(
             deliver_webhook,
-            config.WEBHOOK_URL,
+            webhook_url,
             config.WEBHOOK_SECRET,
             payload,
             config.WEBHOOK_CONNECT_TIMEOUT,
@@ -63,10 +88,11 @@ def queue_task_event(task_id, event):
             config.WEBHOOK_RETRY_BASE_SECONDS,
         )
         logger.info(
-            "TaskWebhook: queued %s event %s for task %s",
+            "TaskWebhook: queued %s event %s for task %s using route %s",
             event,
             event_id,
             task.id,
+            route_tag or "default",
         )
     except Task.DoesNotExist:
         logger.warning("TaskWebhook: task %s no longer exists", task_id)

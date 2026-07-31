@@ -13,11 +13,27 @@
 
 ```python
 WEBHOOK_ENABLED = True
-WEBHOOK_URL = "http://host.docker.internal:9000/webodm/task-completed"
+WEBHOOK_URL = "http://host.docker.internal:8889/webodm/task-completed"
+WEBHOOK_URLS_BY_TAG = {
+    "webhook:test": "http://host.docker.internal:8890/webodm/task-completed",
+}
 WEBHOOK_SECRET = "replace-with-a-random-secret"
 ```
 
-`WEBHOOK_URL` 是宿主机接收服务地址。Windows 和 macOS Docker Desktop 可以使用 `host.docker.internal`。接收服务必须监听宿主机可访问的地址，例如 `0.0.0.0:9000`，不能只监听容器内的 `localhost`。
+`WEBHOOK_URL` 是生产环境默认地址。`WEBHOOK_URLS_BY_TAG` 根据任务或项目标签选择其他地址；任务标签优先于项目标签。标签存在但 URL 是 `None` 或空字符串时不会回退到默认地址，以免把回调发到错误环境。
+
+测试环境调用 WebODM 创建任务时传入：
+
+```json
+{
+  "name": "survey-test",
+  "tags": "webhook:test"
+}
+```
+
+生产环境不要传 `tags`，将使用默认的 `8889` 地址。测试环境会使用 `8890` 地址。也兼容数组格式 `"tags": ["webhook:test"]`。如果测试环境使用固定的 WebODM 项目，也可以只给项目添加一次 `webhook:test` 标签，后续任务会继承项目的回调路由。
+
+`WEBHOOK_URL` 和映射中的 URL 都是宿主机接收服务地址。Windows 和 macOS Docker Desktop 可以使用 `host.docker.internal`。接收服务必须监听宿主机可访问的地址，例如 `0.0.0.0:9000`，不能只监听容器内的 `localhost`。
 
 其他配置参数：
 
@@ -131,6 +147,7 @@ NodeODM 报告任务失败，以及 WebODM 在任务处理期间捕获 `NodeServ
 将插件同时复制到 `webapp` 和 `worker` 容器，然后重启两个容器：
 
 ```powershell
+docker cp .\app\api\tags.py webapp:/webodm/app/api/tags.py
 docker cp .\coreplugins\taskwebhook webapp:/webodm/coreplugins/
 docker cp .\coreplugins\taskwebhook worker:/webodm/coreplugins/
 docker restart webapp worker

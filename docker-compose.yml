@@ -21,6 +21,7 @@ services:
     volumes:
       - ${WO_MEDIA_DIR}:/webodm/app/media:z
       - ./app/models/task.py:/webodm/app/models/task.py:ro
+      - ./app/api/tags.py:/webodm/app/api/tags.py:ro
       - ./coreplugins/taskwebhook:/webodm/coreplugins/taskwebhook:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
