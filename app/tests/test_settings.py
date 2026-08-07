@@ -42,9 +42,9 @@ class TestSettings(BootTestCase):
         # We can retrieve the settings
         settings = load_settings()['SETTINGS']
         self.assertTrue(settings is not None, "Can retrieve settings")
-        self.assertEqual(settings.app_name, "智绘")
+        self.assertEqual(settings.app_name, "智绘建模")
         self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
-        self.assertEqual(settings.organization_name, "智绘")
+        self.assertEqual(settings.organization_name, "智绘建模")
         self.assertEqual(settings.organization_website, "")
 
         # The default logo has been created in the proper destination
@@ -58,15 +58,19 @@ class TestSettings(BootTestCase):
         settings.app_logo.save(os.path.basename(legacy_logo), File(open(legacy_logo, 'rb')))
         self.assertTrue(update_legacy_branding(settings))
         settings.refresh_from_db()
-        self.assertEqual(settings.app_name, "智绘")
+        self.assertEqual(settings.app_name, "智绘建模")
         self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
-        self.assertEqual(settings.organization_name, "智绘")
+        self.assertEqual(settings.organization_name, "智绘建模")
         self.assertEqual(settings.organization_website, "")
 
-        settings.app_logo.save('zhihui-logo.png', File(open(webodm_settings.APP_DEFAULT_LOGO, 'rb')))
+        settings.app_name = "智绘"
+        settings.organization_name = "智绘"
+        settings.app_logo.save('logo512.png', File(open(webodm_settings.APP_DEFAULT_LOGO, 'rb')))
         self.assertTrue(update_legacy_branding(settings))
         settings.refresh_from_db()
+        self.assertEqual(settings.app_name, "智绘建模")
         self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
+        self.assertEqual(settings.organization_name, "智绘建模")
 
         # We can update the logo
         logo = os.path.join('app', 'static', 'app', 'img', 'favicon.png')

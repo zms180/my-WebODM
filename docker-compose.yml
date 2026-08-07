@@ -25,6 +25,7 @@ services:
       - ./coreplugins/taskwebhook:/webodm/coreplugins/taskwebhook:ro
       - ./webodm/settings.py:/webodm/webodm/settings.py:ro
       - ./app/boot.py:/webodm/app/boot.py:ro
+      - ./app/templates/app/base.html:/webodm/app/templates/app/base.html:ro
       - ./app/templates/app/logged_in_base.html:/webodm/app/templates/app/logged_in_base.html:ro
       - ./app/static/app/img/zhihui-logo.png:/webodm/app/static/app/img/zhihui-logo.png:ro
     extra_hosts:
