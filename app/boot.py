@@ -23,12 +23,32 @@ from webodm import settings
 from webodm.wsgi import booted
 
 
+def get_default_logo_path():
+    logo_path = settings.APP_DEFAULT_LOGO
+    if os.path.isfile(logo_path):
+        return logo_path
+
+    logger = logging.getLogger('app.logger')
+    logger.error("Default logo path is not a file: %s", logo_path)
+    fallback_logo_path = os.path.join('app', 'static', 'app', 'img', 'logo512.png')
+    if os.path.isfile(fallback_logo_path):
+        logger.warning("Using fallback default logo: %s", fallback_logo_path)
+        return fallback_logo_path
+
+    return None
+
+
 def update_legacy_branding(setting):
     logo_name = os.path.basename(setting.app_logo.name)
     uses_official_default = setting.app_name == "WebODM" and logo_name == "logo512.png"
     uses_previous_brand_default = setting.app_name == settings.APP_NAME and logo_name in (
-        "zhihui-logo512.png", "zhihui-logo-v2.png")
+        "zhihui-logo.png", "zhihui-logo512.png", "zhihui-logo-v2.png", "zhihui-logo-v3.png",
+        "zhihui-logo-v4.png")
     if not (uses_official_default or uses_previous_brand_default):
+        return False
+
+    default_logo_path = get_default_logo_path()
+    if default_logo_path is None:
         return False
 
     if uses_official_default:
@@ -37,9 +57,9 @@ def update_legacy_branding(setting):
             setting.organization_name = settings.APP_NAME
         if setting.organization_website == "https://github.com/WebODM/WebODM/":
             setting.organization_website = ""
-    with open(settings.APP_DEFAULT_LOGO, 'rb') as default_logo_file:
+    with open(default_logo_path, 'rb') as default_logo_file:
         setting.app_logo.save(
-            os.path.basename(settings.APP_DEFAULT_LOGO),
+            os.path.basename(default_logo_path),
             File(default_logo_file),
             save=False)
     setting.save()
@@ -109,7 +129,12 @@ def boot():
                     organization_name=settings.APP_NAME,
                     organization_website="",
                     theme=default_theme)
-            s.app_logo.save(os.path.basename(settings.APP_DEFAULT_LOGO), File(open(settings.APP_DEFAULT_LOGO, 'rb')))
+            default_logo_path = get_default_logo_path()
+            if default_logo_path is not None:
+                with open(default_logo_path, 'rb') as default_logo_file:
+                    s.app_logo.save(os.path.basename(default_logo_path), File(default_logo_file))
+            else:
+                logger.error("Created settings without a default logo")
 
             logger.info("Created settings")
         elif update_legacy_branding(Setting.objects.get()):

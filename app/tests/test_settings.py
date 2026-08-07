@@ -63,7 +63,7 @@ class TestSettings(BootTestCase):
         self.assertEqual(settings.organization_name, "智绘")
         self.assertEqual(settings.organization_website, "")
 
-        settings.app_logo.save('zhihui-logo-v2.png', File(open(webodm_settings.APP_DEFAULT_LOGO, 'rb')))
+        settings.app_logo.save('zhihui-logo.png', File(open(webodm_settings.APP_DEFAULT_LOGO, 'rb')))
         self.assertTrue(update_legacy_branding(settings))
         settings.refresh_from_db()
         self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
