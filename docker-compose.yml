@@ -1,6 +1,6 @@
 # This configuration does not include a processing node
 # Which makes for faster setup times
-version: '2.1'
+version: "2.1"
 volumes:
   dbdata:
   appmedia:
@@ -23,6 +23,10 @@ services:
       - ./app/models/task.py:/webodm/app/models/task.py:ro
       - ./app/api/tags.py:/webodm/app/api/tags.py:ro
       - ./coreplugins/taskwebhook:/webodm/coreplugins/taskwebhook:ro
+      - ./webodm/settings.py:/webodm/webodm/settings.py:ro
+      - ./app/boot.py:/webodm/app/boot.py:ro
+      - ./app/templates/app/logged_in_base.html:/webodm/app/templates/app/logged_in_base.html:ro
+      - ./app/static/app/img/zhihui-logo.png:/webodm/app/static/app/img/zhihui-logo.png:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -56,6 +60,7 @@ services:
       - ${WO_MEDIA_DIR}:/webodm/app/media:z
       - ./app/models/task.py:/webodm/app/models/task.py:ro
       - ./coreplugins/taskwebhook:/webodm/coreplugins/taskwebhook:ro
+      - ./webodm/settings.py:/webodm/webodm/settings.py:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

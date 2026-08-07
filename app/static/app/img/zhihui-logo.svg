@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">智绘</title>
+  <desc id="desc">由三角不规则网和高程控制点构成的智绘品牌图标</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="145%">
+      <feDropShadow dx="0" dy="12" stdDeviation="13" flood-color="#031936" flood-opacity=".3"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <path d="M256 30 447 140v232L256 482 65 372V140Z" fill="#0b4774"/>
+    <path d="M104 374 188 213l70 68Z" fill="#22b8c9"/>
+    <path d="m188 213 145-74-75 142Z" fill="#8aefde"/>
+    <path d="m258 281 75-142 75 235Z" fill="#257fb7"/>
+    <path d="M104 374 258 281l150 93Z" fill="#0e6396"/>
+    <path d="M104 374 188 213l70 68 75-142 75 235H104Z" fill="none" stroke="#e4fff9" stroke-linejoin="round" stroke-width="8" opacity=".92"/>
+    <path d="m188 213 70 68 75-142M258 281v93M258 281l150 93" fill="none" stroke="#e4fff9" stroke-linecap="round" stroke-linejoin="round" stroke-width="7" opacity=".72"/>
+    <path d="M132 340c48-30 96-29 145-2 38 21 76 19 113-7" fill="none" stroke="#c6fff4" stroke-linecap="round" stroke-width="8" opacity=".42"/>
+    <circle cx="188" cy="213" r="10" fill="#f0fffb"/>
+    <circle cx="258" cy="281" r="10" fill="#f0fffb"/>
+    <circle cx="333" cy="139" r="25" fill="#07385f" opacity=".88"/>
+    <circle cx="333" cy="139" r="15" fill="#ffd16a"/>
+    <circle cx="333" cy="139" r="6" fill="#fffbe7"/>
+  </g>
+</svg>

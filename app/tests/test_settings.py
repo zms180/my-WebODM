@@ -6,6 +6,7 @@ from django.core.files import File
 from django.test import Client
 
 from app.contexts.settings import load as load_settings
+from app.boot import update_legacy_branding
 from app.models import Setting
 from app.models import Theme
 from webodm import settings as webodm_settings
@@ -41,10 +42,31 @@ class TestSettings(BootTestCase):
         # We can retrieve the settings
         settings = load_settings()['SETTINGS']
         self.assertTrue(settings is not None, "Can retrieve settings")
+        self.assertEqual(settings.app_name, "智绘")
+        self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
+        self.assertEqual(settings.organization_name, "智绘")
+        self.assertEqual(settings.organization_website, "")
 
         # The default logo has been created in the proper destination
         default_logo_path = os.path.join(webodm_settings.MEDIA_ROOT, settings.app_logo.name)
         self.assertTrue(os.path.exists(default_logo_path), "Default logo exists in MEDIA_ROOT/settings")
+
+        legacy_logo = os.path.join('app', 'static', 'app', 'img', 'logo512.png')
+        settings.app_name = "WebODM"
+        settings.organization_name = "WebODM"
+        settings.organization_website = "https://github.com/WebODM/WebODM/"
+        settings.app_logo.save(os.path.basename(legacy_logo), File(open(legacy_logo, 'rb')))
+        self.assertTrue(update_legacy_branding(settings))
+        settings.refresh_from_db()
+        self.assertEqual(settings.app_name, "智绘")
+        self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
+        self.assertEqual(settings.organization_name, "智绘")
+        self.assertEqual(settings.organization_website, "")
+
+        settings.app_logo.save('zhihui-logo-v2.png', File(open(webodm_settings.APP_DEFAULT_LOGO, 'rb')))
+        self.assertTrue(update_legacy_branding(settings))
+        settings.refresh_from_db()
+        self.assertEqual(os.path.basename(settings.app_logo.name), "zhihui-logo.png")
 
         # We can update the logo
         logo = os.path.join('app', 'static', 'app', 'img', 'favicon.png')
@@ -59,8 +81,3 @@ class TestSettings(BootTestCase):
         # The old logo does not exist anymore
         self.assertFalse(os.path.exists(default_logo_path),
                         "Old logo has been deleted")
-
-
-
-
-

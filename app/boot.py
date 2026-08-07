@@ -23,6 +23,29 @@ from webodm import settings
 from webodm.wsgi import booted
 
 
+def update_legacy_branding(setting):
+    logo_name = os.path.basename(setting.app_logo.name)
+    uses_official_default = setting.app_name == "WebODM" and logo_name == "logo512.png"
+    uses_previous_brand_default = setting.app_name == settings.APP_NAME and logo_name in (
+        "zhihui-logo512.png", "zhihui-logo-v2.png")
+    if not (uses_official_default or uses_previous_brand_default):
+        return False
+
+    if uses_official_default:
+        setting.app_name = settings.APP_NAME
+        if setting.organization_name == "WebODM":
+            setting.organization_name = settings.APP_NAME
+        if setting.organization_website == "https://github.com/WebODM/WebODM/":
+            setting.organization_website = ""
+    with open(settings.APP_DEFAULT_LOGO, 'rb') as default_logo_file:
+        setting.app_logo.save(
+            os.path.basename(settings.APP_DEFAULT_LOGO),
+            File(default_logo_file),
+            save=False)
+    setting.save()
+    return True
+
+
 def boot():
     # booted is a shared memory variable to keep track of boot status
     # as multiple gunicorn workers could trigger the boot sequence twice
@@ -83,10 +106,14 @@ def boot():
         if not Setting.objects.exists():
             s = Setting.objects.create(
                     app_name=settings.APP_NAME,
+                    organization_name=settings.APP_NAME,
+                    organization_website="",
                     theme=default_theme)
             s.app_logo.save(os.path.basename(settings.APP_DEFAULT_LOGO), File(open(settings.APP_DEFAULT_LOGO, 'rb')))
 
             logger.info("Created settings")
+        elif update_legacy_branding(Setting.objects.get()):
+            logger.info("Updated default branding")
         
         init_plugins()
 
