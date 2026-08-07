@@ -38,17 +38,23 @@ def get_default_logo_path():
     return None
 
 
+def _logo_matches(logo_name, ref_name):
+    # Matches exact name or Django-renamed variant (e.g. logo512_TFAz34Z.png matches logo512.png)
+    stem = os.path.splitext(ref_name)[0]
+    return logo_name == ref_name or logo_name.startswith(stem + '_')
+
+
 def update_legacy_branding(setting):
     logo_name = os.path.basename(setting.app_logo.name)
     default_logo_name = os.path.basename(settings.APP_DEFAULT_LOGO)
     legacy_brand_names = ("智绘",)
     legacy_brand_logo_names = ("zhuihui-logo.png", "logo512.png")
-    uses_official_default = setting.app_name == "WebODM" and logo_name == "logo512.png"
-    uses_current_brand_default = setting.app_name == settings.APP_NAME and logo_name == default_logo_name
+    uses_official_default = setting.app_name == "WebODM" and _logo_matches(logo_name, "logo512.png")
+    uses_current_brand_default = setting.app_name == settings.APP_NAME and _logo_matches(logo_name, default_logo_name)
     uses_previous_brand_default = (
         (setting.app_name in legacy_brand_names and
-         logo_name in legacy_brand_logo_names + (default_logo_name,)) or (
-        setting.app_name == settings.APP_NAME and logo_name in legacy_brand_logo_names))
+         any(_logo_matches(logo_name, n) for n in legacy_brand_logo_names + (default_logo_name,))) or (
+        setting.app_name == settings.APP_NAME and any(_logo_matches(logo_name, n) for n in legacy_brand_logo_names)))
     if not (uses_official_default or uses_current_brand_default or uses_previous_brand_default):
         return False
 
