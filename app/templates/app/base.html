@@ -31,7 +31,7 @@
     <meta property="og:title" content="{{title|default:"Login"}} - {{ SETTINGS.app_name }}" />
     <meta property="og:image" content="{{ thumb }}" />
     {% endif %}
-    <link rel="icon" type="image/png" href="/media/{{ SETTINGS.app_logo.url }}" sizes="32x32">
+    <link rel="icon" type="image/png" href="/media/{{ SETTINGS.app_logo.url }}?v=zhihui-logo" sizes="32x32">
 
     <link rel="stylesheet" type="text/css" href="{% static 'app/css/bootstrap.min.css' %}" />
 
@@ -76,12 +76,12 @@
             font-weight: 600;
             gap: 8px;
             height: 50px;
-            left: 50%;
+            left: 0;
             margin: 0;
             padding: 7px 12px;
             position: absolute;
             top: 0;
-            transform: translateX(-50%);
+            transform: none;
             white-space: nowrap;
         }
 
@@ -138,7 +138,7 @@
                 {% block navbar-top-links %}{% endblock %}
             
                 <a class="navbar-brand brand-identity" href="{% if '/public/task/' in request.path and request.user.is_anonymous and SETTINGS.organization_website %}{{ SETTINGS.organization_website }}{% else %}/{% endif %}" aria-label="{{ SETTINGS.app_name }}">
-                    <img class="brand-identity__logo" src="/media/{{ SETTINGS.app_logo.url }}" alt="" aria-hidden="true" />
+                    <img class="brand-identity__logo" src="/media/{{ SETTINGS.app_logo.url }}?v=zhihui-logo" alt="" aria-hidden="true" />
                     <span>{{ SETTINGS.app_name }}</span>
                 </a>
             </div>
