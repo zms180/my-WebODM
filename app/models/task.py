@@ -265,6 +265,7 @@ class Task(models.Model):
     public_edit = models.BooleanField(default=False, help_text=_("A flag indicating whether this public task can be edited"), verbose_name=_("Public Edit"))
 
     resize_to = models.IntegerField(default=-1, help_text=_("When set to a value different than -1, indicates that the images for this task have been / will be resized to the size specified here before processing."), verbose_name=_("Resize To"))
+    original_image_size = fields.JSONField(default=dict, blank=True, help_text=_("Pixel dimensions of the original task images"), verbose_name=_("Original Image Size"))
 
     upload_progress = models.FloatField(default=0.0,
                                         help_text=_("Value between 0 and 1 indicating the upload progress of this task's files to the processing node"),
@@ -514,6 +515,7 @@ class Task(models.Model):
                 'created_at': self.created_at.astimezone(timezone.utc).timestamp(),
                 'public': self.public,
                 'resize_to': self.resize_to,
+                'original_image_size': self.original_image_size,
                 'potree_scene': self.potree_scene,
                 'tags': self.tags,
                 'crop': json.loads(self.crop.geojson) if self.crop is not None else None,
@@ -533,6 +535,7 @@ class Task(models.Model):
                     self.created_at = datetime.fromtimestamp(backup.get('created_at', self.created_at.astimezone(timezone.utc).timestamp()), tz=timezone.utc)
                     self.public = backup.get('public', self.public)
                     self.resize_to = backup.get('resize_to', self.resize_to)
+                    self.original_image_size = backup.get('original_image_size', self.original_image_size)
                     self.potree_scene = backup.get('potree_scene', self.potree_scene)
                     self.tags = backup.get('tags', self.tags)
 
@@ -1634,6 +1637,15 @@ class Task(models.Model):
                             shutil.copyfileobj(f, fd)
             
             uploaded[name] = os.path.getsize(dst_path)
+
+            if not self.original_image_size:
+                try:
+                    with Image.open(dst_path) as image:
+                        width, height = image.size
+                        self.original_image_size = {'width': width, 'height': height}
+                        self.save(update_fields=['original_image_size'])
+                except (OSError, TypeError, ValueError):
+                    pass
         return uploaded
 
     def update_size(self, commit=False):

@@ -40,6 +40,10 @@ from .fields import PolygonGeometryField
 from app.geoutils import geom_transform_wkt_bbox, get_srs_name_units_from_epsg_or_wkt
 from webodm import settings
 
+EXIF_IFD_TAG = 34665
+EXIF_PIXEL_X_DIMENSION_TAG = 40962
+EXIF_PIXEL_Y_DIMENSION_TAG = 40963
+
 def flatten_files(request_files):
     # MultiValueDict in, flat array of files out
     return [file for filesList in map(
@@ -59,6 +63,7 @@ class TaskSerializer(serializers.ModelSerializer):
     statistics = serializers.SerializerMethodField()
     extent = serializers.SerializerMethodField()
     media = serializers.SerializerMethodField()
+    original_image_size = serializers.SerializerMethodField()
     tags = TagsField(required=False)
     crop = PolygonGeometryField(required=False, allow_null=True)
     srs = serializers.SerializerMethodField()
@@ -99,6 +104,41 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def get_media(self, obj):
         return len(obj.media) if obj.media else 0
+
+    def get_original_image_size(self, obj):
+        if isinstance(obj.original_image_size, dict) and \
+                obj.original_image_size.get('width') and obj.original_image_size.get('height'):
+            return obj.original_image_size
+
+        try:
+            image_paths = obj.find_all_files_matching(r'.*\.(jpe?g|tiff?|png)$')
+        except OSError:
+            return None
+
+        for image_path in image_paths:
+            try:
+                with Image.open(image_path) as image:
+                    width, height = image.size
+                    exif = image.getexif()
+                    original_width = exif.get(EXIF_PIXEL_X_DIMENSION_TAG)
+                    original_height = exif.get(EXIF_PIXEL_Y_DIMENSION_TAG)
+                    if hasattr(exif, 'get_ifd'):
+                        try:
+                            exif_ifd = exif.get_ifd(EXIF_IFD_TAG)
+                            original_width = exif_ifd.get(EXIF_PIXEL_X_DIMENSION_TAG) or original_width
+                            original_height = exif_ifd.get(EXIF_PIXEL_Y_DIMENSION_TAG) or original_height
+                        except (KeyError, OSError, TypeError, ValueError):
+                            pass
+
+                    if original_width and original_height:
+                        width = int(original_width)
+                        height = int(original_height)
+
+                    return {'width': width, 'height': height}
+            except (OSError, TypeError, ValueError):
+                continue
+
+        return None
 
     class Meta:
         model = models.Task

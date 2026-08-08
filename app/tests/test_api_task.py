@@ -234,6 +234,16 @@ class TestApiTask(BootTransactionTestCase):
             # Resize progress is 100%
             resized_task.refresh_from_db()
             self.assertEqual(resized_task.resize_progress, 1.0)
+            self.assertEqual(resized_task.original_image_size, {
+                'width': img1.size[0],
+                'height': img1.size[1],
+            })
+
+            res = client.get("/api/projects/{}/tasks/{}/".format(project.id, resized_task.id))
+            self.assertEqual(res.data['original_image_size'], {
+                'width': img1.size[0],
+                'height': img1.size[1],
+            })
 
             # Upload progress is 100%
             self.assertEqual(resized_task.upload_progress, 1.0)
@@ -1634,4 +1644,3 @@ class TestApiTask(BootTransactionTestCase):
         # Cannot filter with invalid bounding box format
         res = client.get("/api/projects/{}/tasks/?bbox=bad".format(project.id))
         self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
-

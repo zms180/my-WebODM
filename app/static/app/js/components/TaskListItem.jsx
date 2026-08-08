@@ -678,6 +678,16 @@ class TaskListItem extends React.Component {
                       <td><strong>{_("Options:")}</strong></td>
                       <td>{this.optionsToList(task.options)}</td>
                     </tr>}
+                    {task.original_image_size &&
+                    <tr>
+                      <td><strong>{_("Original Image Size:")}</strong></td>
+                      <td>{task.original_image_size.width} × {task.original_image_size.height} {_("px")}</td>
+                    </tr>}
+                    {task.resize_to !== undefined && task.resize_to !== null && task.resize_to >= 0 &&
+                    <tr>
+                      <td><strong>{_("Resize To:")}</strong></td>
+                      <td>{task.resize_to} {_("px")}</td>
+                    </tr>}
                     {stats && stats.gsd && 
                     <tr>
                       <td><strong>{_("Average GSD:")}</strong></td>

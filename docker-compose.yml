@@ -17,12 +17,16 @@ services:
   webapp:
     image: webodm/webodm_webapp
     container_name: webapp
-    entrypoint: /bin/bash -c "service cron start && chmod +x /webodm/*.sh && /bin/bash -c \"/webodm/wait-for-postgres.sh db /webodm/wait-for-it.sh -t 0 broker:6379 -- /webodm/start.sh\""
+    entrypoint: /bin/bash -c "service cron start && chmod +x /webodm/*.sh && webpack --mode production && python manage.py collectstatic --noinput && python manage.py compilemessages -l zh_Hans && /bin/bash -c \"/webodm/wait-for-postgres.sh db /webodm/wait-for-it.sh -t 0 broker:6379 -- /webodm/start.sh\""
     volumes:
       - ${WO_MEDIA_DIR}:/webodm/app/media:z
       - ./app/models/task.py:/webodm/app/models/task.py:ro
+      - ./app/api/tasks.py:/webodm/app/api/tasks.py:ro
+      - ./app/migrations/0052_task_original_image_size.py:/webodm/app/migrations/0052_task_original_image_size.py:ro
+      - ./app/static/app/js/components/TaskListItem.jsx:/webodm/app/static/app/js/components/TaskListItem.jsx:ro
       - ./app/api/tags.py:/webodm/app/api/tags.py:ro
       - ./coreplugins/taskwebhook:/webodm/coreplugins/taskwebhook:ro
+      - ./locale/zh_Hans/LC_MESSAGES/djangojs.po:/webodm/locale/zh_Hans/LC_MESSAGES/djangojs.po:ro
       - ./webodm/settings.py:/webodm/webodm/settings.py:ro
       - ./app/boot.py:/webodm/app/boot.py:ro
       - ./app/templates/app/base.html:/webodm/app/templates/app/base.html:ro
@@ -60,6 +64,7 @@ services:
     volumes:
       - ${WO_MEDIA_DIR}:/webodm/app/media:z
       - ./app/models/task.py:/webodm/app/models/task.py:ro
+      - ./app/migrations/0052_task_original_image_size.py:/webodm/app/migrations/0052_task_original_image_size.py:ro
       - ./coreplugins/taskwebhook:/webodm/coreplugins/taskwebhook:ro
       - ./webodm/settings.py:/webodm/webodm/settings.py:ro
     extra_hosts:
