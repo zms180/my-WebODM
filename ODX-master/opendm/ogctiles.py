@@ -67,7 +67,9 @@ def build_textured_model(input_obj, output_path, reference_lla = None, rerun=Fal
             'lat': lat,
             'lon': lon,
             'alt': alt,
-            'divisions': 1,
+            # Keep one full-footprint parent tile so zooming out never exposes
+            # a gap while one of several coarse sibling tiles is downloading.
+            'divisions': 0,
             'lods': 4,
             'lod_texture_scale': 0.5,
             'base_error': 40,
