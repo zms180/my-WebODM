@@ -1,0 +1,16 @@
+# 基于现有 WebODM webapp 镜像构建
+FROM webodm/webodm_webapp
+
+# 复制自定义源码到镜像内部
+COPY app/models/task.py /webodm/app/models/task.py
+COPY app/api/tasks.py /webodm/app/api/tasks.py
+COPY app/api/tags.py /webodm/app/api/tags.py
+COPY app/migrations/0052_task_original_image_size.py /webodm/app/migrations/0052_task_original_image_size.py
+COPY app/static/app/js/components/TaskListItem.jsx /webodm/app/static/app/js/components/TaskListItem.jsx
+COPY app/static/app/img/zhihui-logo.png /webodm/app/static/app/img/zhihui-logo.png
+COPY app/templates/app/base.html /webodm/app/templates/app/base.html
+COPY app/templates/app/logged_in_base.html /webodm/app/templates/app/logged_in_base.html
+COPY app/boot.py /webodm/app/boot.py
+COPY coreplugins/taskwebhook /webodm/coreplugins/taskwebhook
+COPY locale/zh_Hans/LC_MESSAGES/djangojs.po /webodm/locale/zh_Hans/LC_MESSAGES/djangojs.po
+COPY webodm/settings.py /webodm/webodm/settings.py

@@ -1,0 +1,25 @@
+# GeoModel 处理节点配置文件
+# 将此文件链接到主 docker-compose 文件以添加处理节点
+
+version: '2.1'
+services:
+  webapp:
+    depends_on:
+      - node-odx-1
+    environment:
+      - WO_DEFAULT_NODES
+  node-odx-1:
+    image: geomodel_nodeodx:v1.0
+    container_name: node-odx-1
+    expose:
+      - "3000"
+    restart: unless-stopped
+    oom_score_adj: 500
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: cdi
+              device_ids:
+                - nvidia.com/gpu=all
+              capabilities: [gpu]

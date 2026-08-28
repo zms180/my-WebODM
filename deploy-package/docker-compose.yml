@@ -1,0 +1,65 @@
+# GeoModel 私有部署配置文件
+# 此配置不包含处理节点
+version: "2.1"
+volumes:
+  dbdata:
+  appmedia:
+services:
+  db:
+    image: geomodel_db:v1.0
+    container_name: db
+    expose:
+      - "5432"
+    volumes:
+      - ${WO_DB_DIR:-dbdata}:/var/lib/postgresql/data:Z
+    restart: unless-stopped
+    oom_score_adj: -100
+  webapp:
+    image: geomodel_webapp:v1.0
+    container_name: webapp
+    entrypoint: /bin/bash -c "service cron start && chmod +x /webodm/*.sh && webpack --mode production && python manage.py collectstatic --noinput && python manage.py compilemessages -l zh_Hans && /bin/bash -c \"/webodm/wait-for-postgres.sh db /webodm/wait-for-it.sh -t 0 broker:6379 -- /webodm/start.sh\""
+    volumes:
+      - ${WO_MEDIA_DIR:-appmedia}:/webodm/app/media:z
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${WO_PORT:-8000}:8000/tcp"
+      - "${WO_PORT:-8000}:8000/udp"
+    depends_on:
+      - db
+      - broker
+      - worker
+    environment:
+      - WO_PORT=${WO_PORT:-8000}
+      - WO_HOST=${WO_HOST:-localhost}
+      - WO_DEBUG=${WO_DEBUG:-NO}
+      - WO_BROKER=${WO_BROKER:-redis://broker}
+      - WO_DEV=${WO_DEV:-NO}
+      - WO_DEV_WATCH_PLUGINS=${WO_DEV_WATCH_PLUGINS:-NO}
+      - WO_SECRET_KEY
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
+    restart: unless-stopped
+    oom_score_adj: 0
+  broker:
+    image: redis:7.0.10
+    container_name: broker
+    restart: unless-stopped
+    oom_score_adj: -500
+  worker:
+    image: geomodel_webapp:v1.0
+    container_name: worker
+    entrypoint: /bin/bash -c "/webodm/wait-for-postgres.sh db /webodm/wait-for-it.sh -t 0 broker:6379 -- /webodm/wait-for-it.sh -t 0 webapp:8000 -- /webodm/worker.sh start"
+    volumes:
+      - ${WO_MEDIA_DIR:-appmedia}:/webodm/app/media:z
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - db
+      - broker
+    environment:
+      - WO_BROKER=${WO_BROKER:-redis://broker}
+      - WO_DEBUG=${WO_DEBUG:-NO}
+      - WO_SECRET_KEY
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
+    restart: unless-stopped
+    oom_score_adj: 250
