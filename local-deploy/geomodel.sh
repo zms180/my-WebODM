@@ -23,6 +23,7 @@ fi
 gpu=false
 detached=false
 load_micmac_node=false
+enable_api=false
 
 # define realpath replacement function
 if [[ $platform = "MacOS / OSX" ]]; then
@@ -125,6 +126,10 @@ case $key in
     gpu=true
     shift # past argument
     ;;
+    --with-api)
+    enable_api=true
+    shift # past argument
+    ;;
     --broker)
     export WO_BROKER="$2"
     shift # past argument
@@ -209,6 +214,26 @@ detect_gpus() {
     fi
 }
 
+# 检查 docker-compose 或 docker compose
+docker_compose="docker-compose"
+check_docker_compose() {
+    unset not_found
+    # Check if docker-compose exists
+    hash "docker-compose" 2>/dev/null || not_found=true
+    if [[ $not_found ]]; then
+        # Check if compose plugin is installed
+        if docker compose version > /dev/null 2>&1; then
+            docker_compose="docker compose"
+        else
+            echo "错误：未找到 docker-compose 或 docker compose"
+            echo "请安装 Docker Compose: https://docs.docker.com/compose/install/"
+            exit 1
+        fi
+    else
+        docker_compose="docker-compose"
+    fi
+}
+
 usage() {
     echo "Usage: $0 <command> [options]"
     echo ""
@@ -240,6 +265,7 @@ usage() {
     echo "  --broker <url>              Set the URL used to connect to the celery broker (default: $DEFAULT_BROKER)"
     echo "  --detached                  Run GeoModel in detached mode (default: disabled)"
     echo "  --gpu                       Use GPU processing nodes (Linux only) (default: disabled)"
+    echo "  --with-api                  Also start GeoModel API service (default: disabled)"
     echo "  --settings <path>           Path to a settings.py file to enable modifications of system settings"
     echo "  --worker-memory <amount>    Maximum amount of memory allocated for the worker process (default: unlimited)"
     echo "  --worker-cpus <num>         Maximum number of CPUs allocated for the worker process (default: all)"
@@ -249,6 +275,7 @@ usage() {
 
 # 启动函数
 start() {
+    check_docker_compose
     get_secret
 
     if [[ $gpu = true ]]; then
@@ -272,7 +299,7 @@ start() {
     echo "================================"
     echo ""
 
-    command="docker-compose -f docker-compose.yml"
+    command="$docker_compose -f docker-compose.yml"
 
     if [[ $WO_DEFAULT_NODES -gt 0 ]]; then
         if [[ $gpu = true ]] && [ "${GPU_NVIDIA}" = true ]; then
@@ -283,6 +310,11 @@ start() {
         else
             echo "✓ 未检测到 GPU，跳过 GPU 节点"
         fi
+    fi
+
+    if [[ $enable_api = true ]]; then
+        command+=" --profile api"
+        echo "✓ 启用 GeoModel API 服务"
     fi
 
     command+=" up"
@@ -302,7 +334,7 @@ start() {
 
         echo ""
         echo "服务状态："
-        docker-compose ps
+        $docker_compose ps
 
         echo ""
         echo "================================"
@@ -311,24 +343,25 @@ start() {
         echo "访问地址: http://$WO_HOST:$WO_PORT"
         echo ""
         echo "常用命令："
-        echo "  查看日志: docker-compose logs -f webapp"
-        echo "  停止服务: docker-compose down"
-        echo "  重启服务: docker-compose restart"
+        echo "  查看日志: $docker_compose logs -f webapp"
+        echo "  停止服务: $docker_compose down"
+        echo "  重启服务: $docker_compose restart"
         echo "================================"
     fi
 }
 
 # 停止函数
 down() {
+    check_docker_compose
     echo "停止 GeoModel..."
 
-    command="docker-compose -f docker-compose.yml"
+    command="$docker_compose -f docker-compose.yml"
 
     if [ -f docker-compose.nodeodx.yml ]; then
         command+=" -f docker-compose.nodeodx.yml"
     fi
 
-    command+=" down"
+    command+=" --profile api down"
 
     eval "$command"
     echo "✓ GeoModel 已停止"
@@ -343,12 +376,14 @@ restart() {
 
 # 查看状态
 status() {
-    docker-compose ps
+    check_docker_compose
+    $docker_compose ps
 }
 
 # 查看日志
 logs() {
-    docker-compose logs -f
+    check_docker_compose
+    $docker_compose logs -f
 }
 
 # 解析命令

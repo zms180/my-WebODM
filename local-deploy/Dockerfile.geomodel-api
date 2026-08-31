@@ -1,0 +1,74 @@
+# geomodel-api Docker 镜像
+FROM python:3.11-slim
+
+# 配置代理参数
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
+# 设置环境变量
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY}
+
+# 安装基础编译工具。
+# Debian 镜像在代理或镜像站繁忙时可能短暂返回 503，启用 apt 内置重试。
+RUN sed -i 's|http://deb.debian.org|https://deb.debian.org|g' \
+        /etc/apt/sources.list.d/debian.sources /etc/apt/sources.list 2>/dev/null || true; \
+    apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+    cmake \
+    g++ \
+    make \
+    git \
+    curl \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 OSGB 转换工具的依赖库
+RUN apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
+    libopenscenegraph-dev \
+    libassimp-dev \
+    nlohmann-json3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置工作目录
+WORKDIR /app
+
+# 复制依赖文件并安装 Python 依赖
+COPY webodm-api/requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# 复制应用代码
+COPY webodm-api/ .
+
+# 构建 OSGB 转换工具
+RUN if [ -f tools/osgb/CMakeLists.txt ]; then \
+        rm -rf tools/osgb/build && \
+        cmake -S tools/osgb -B tools/osgb/build -DCMAKE_BUILD_TYPE=Release && \
+        cmake --build tools/osgb/build --parallel $(nproc) && \
+        echo "OSGB tools built successfully"; \
+    else \
+        echo "WARNING: OSGB tools not found, skipping build"; \
+    fi
+
+# 创建数据目录
+RUN mkdir -p data/workspaces data/assets logs
+
+# 设置权限
+RUN chmod +x gunicorn.conf.py asgi.py || true
+
+# 清除代理环境变量（运行时不需要）
+ENV http_proxy="" \
+    https_proxy=""
+
+# 暴露端口
+EXPOSE 8889
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8889/healthz', timeout=5).read()" || exit 1
+
+# 启动命令
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "asgi:app"]

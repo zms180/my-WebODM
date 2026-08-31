@@ -1,9 +1,10 @@
 # GeoModel 私有部署配置文件
 # 此配置不包含处理节点
-version: "2.1"
 volumes:
   dbdata:
   appmedia:
+  geomodel_api_data:
+  geomodel_api_logs:
 services:
   db:
     image: geomodel_db:v1.0
@@ -63,3 +64,37 @@ services:
       - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
     restart: unless-stopped
     oom_score_adj: 250
+  geomodel-api:
+    image: geomodel_api:v1.0
+    container_name: geomodel-api
+    volumes:
+      - ${GEOMODEL_API_DATA_DIR:-geomodel_api_data}:/app/data:z
+      - ${GEOMODEL_API_LOG_DIR:-geomodel_api_logs}:/app/logs:z
+    ports:
+      - "${GEOMODEL_API_PORT:-8889}:8889"
+    environment:
+      - APP_ENV=${GEOMODEL_API_ENV:-local}
+      - WEBODM_URL=http://webapp:8000/
+      - WEBODM_USERNAME=${WEBODM_USERNAME:-admin}
+      - WEBODM_PASSWORD=${WEBODM_PASSWORD:-admin}
+      - WEBODM_TOKEN=${WEBODM_TOKEN:-}
+      - WEBODM_VERIFY_TLS=false
+      - WEBODM_CONNECT_TIMEOUT=10
+      - WEBODM_UPLOAD_TIMEOUT=3600
+      - WEBHOOK_SECRET=${GEOMODEL_API_WEBHOOK_SECRET:-8e9377d3b93b78de79081f2c54542c302347f5ad169323032affeb77816a4cc1}
+      - WEBHOOK_MAX_AGE_SECONDS=300
+      - APP_API_KEY=${GEOMODEL_API_KEY:-aaa1df2a2f47f5495edaf32c1e3bb5dffa63a4e42419755c5f7975f620820a2a}
+      - DATABASE_PATH=/app/data/webodm-gateway.sqlite3
+      - LOG_LEVEL=${GEOMODEL_API_LOG_LEVEL:-INFO}
+      - GUNICORN_BIND=0.0.0.0:8889
+      - GUNICORN_WORKERS=1
+      - GUNICORN_TIMEOUT=3600
+      - WORKFLOW_ENABLED=${GEOMODEL_API_WORKFLOW_ENABLED:-true}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - webapp
+    restart: unless-stopped
+    oom_score_adj: 100
+    profiles:
+      - api

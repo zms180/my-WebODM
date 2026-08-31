@@ -2,6 +2,7 @@
 .secret_key
 node_modules/
 .venv/
+webodm-api/tools/osgb/build/
 docs/
 screenshots/
 contrib/
